@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Presentador · TPR</title>
+  <link rel="icon" href="/assets/logo-color.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+  <header class="encabezado">
+    <img src="/assets/logo-blanco.png" alt="TPR · Terminal Puerto Rosario S.A.">
+    <span class="lema">Presentador</span>
+  </header>
+
+  <main class="contenedor">
+
+    <!-- Login -->
+    <section id="vista-login" class="tarjeta" style="max-width:460px;margin:30px auto;">
+      <h1>Ingreso presentador</h1>
+      <div class="linea-dorada"></div>
+      <form id="form-login" novalidate>
+        <label class="campo" for="password">Contraseña</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+        <div class="acciones">
+          <button type="submit" class="boton" id="boton-login">Ingresar</button>
+        </div>
+        <p id="mensaje-login" class="mensaje error" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Panel de control -->
+    <section id="vista-panel" class="oculto">
+      <div class="tarjeta">
+        <h1>Presentación del evento</h1>
+        <div class="linea-dorada"></div>
+        <div class="estadistica">
+          <span class="numero" id="contador">0</span>
+          <span class="etiqueta">fotos aprobadas en rotación</span>
+        </div>
+        <p>Al iniciar, las fotos aprobadas se muestran a pantalla completa en un muro que se renueva solo. Las fotos nuevas que apruebe el administrador se suman automáticamente.</p>
+        <p class="subtitulo">Para salir de la presentación, presioná <strong>Esc</strong> o el botón "Salir".</p>
+        <div class="acciones">
+          <button class="boton grande" id="boton-iniciar">▶ Iniciar presentación en pantalla completa</button>
+          <button class="boton secundario" id="boton-salir-sesion">Cerrar sesión</button>
+        </div>
+        <p id="estado" class="mensaje" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <p class="pie"><a href="/">← Volver al sitio</a></p>
+  </main>
+
+  <!-- Escenario a pantalla completa -->
+  <div id="escenario" class="escenario oculto" aria-label="Presentación de fotos">
+    <div id="muro" class="muro"></div>
+
+    <div id="logo" class="logo-flotante" aria-hidden="true">
+      <img src="/assets/logo-blanco.png" alt="TPR · Terminal Puerto Rosario S.A.">
+      <div class="lema-logo">Un socio en quien confiar</div>
+    </div>
+
+    <button class="salir-escenario" id="boton-salir-escenario" type="button">Salir (Esc)</button>
+  </div>
+
+  <script src="/js/comun.js"></script>
+  <script src="/js/presentador.js"></script>
+</body>
+</html>

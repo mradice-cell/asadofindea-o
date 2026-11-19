@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Administración de fotos · TPR</title>
+  <link rel="icon" href="/assets/logo-color.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+  <header class="encabezado">
+    <img src="/assets/logo-blanco.png" alt="TPR · Terminal Puerto Rosario S.A.">
+    <span class="lema">Administración de fotos</span>
+  </header>
+
+  <main class="contenedor">
+
+    <!-- Login -->
+    <section id="vista-login" class="tarjeta" style="max-width:460px;margin:30px auto;">
+      <h1>Ingreso administrador</h1>
+      <div class="linea-dorada"></div>
+      <form id="form-login" novalidate>
+        <label class="campo" for="password">Contraseña</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+        <div class="acciones">
+          <button type="submit" class="boton" id="boton-login">Ingresar</button>
+        </div>
+        <p id="mensaje-login" class="mensaje error" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Panel -->
+    <section id="vista-panel" class="oculto">
+      <div class="barra">
+        <div>
+          <h1>Moderación</h1>
+          <p class="subtitulo" style="margin:0">Aprobá las fotos que se proyectarán en el evento.</p>
+        </div>
+        <div class="acciones" style="margin:0">
+          <button class="boton secundario" id="boton-actualizar">Actualizar</button>
+          <button class="boton secundario" id="boton-salir">Salir</button>
+        </div>
+      </div>
+
+      <div class="barra">
+        <div class="pestanas" role="tablist">
+          <button class="pestana activa" data-filtro="pendiente">Pendientes <span class="n" id="n-pendiente">0</span></button>
+          <button class="pestana" data-filtro="aprobada">Aprobadas <span class="n" id="n-aprobada">0</span></button>
+          <button class="pestana" data-filtro="rechazada">Rechazadas <span class="n" id="n-rechazada">0</span></button>
+          <button class="pestana" data-filtro="todas">Todas <span class="n" id="n-todas">0</span></button>
+        </div>
+        <p id="estado" class="mensaje ok" role="status" aria-live="polite" style="margin:0"></p>
+      </div>
+
+      <div id="grilla" class="grilla-fotos"></div>
+    </section>
+
+    <p class="pie"><a href="/">← Volver al sitio</a></p>
+  </main>
+
+  <script src="/js/comun.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

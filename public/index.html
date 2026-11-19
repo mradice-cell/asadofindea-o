@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compartí tu foto · Terminal Puerto Rosario</title>
+  <link rel="icon" href="/assets/logo-color.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+  <header class="encabezado">
+    <img src="/assets/logo-blanco.png" alt="TPR · Terminal Puerto Rosario S.A.">
+    <span class="lema">Un socio en quien confiar</span>
+  </header>
+
+  <main class="contenedor">
+    <section class="tarjeta">
+      <h1>Compartí tu foto</h1>
+      <div class="linea-dorada"></div>
+      <p>Sacate una foto o elegí una de tu galería. Después de revisarla, el equipo la incluirá en la presentación del evento.</p>
+
+      <form id="form-subida" novalidate>
+        <label class="campo" for="archivo">Tu foto (JPG, PNG o WEBP · máximo 5 MB)</label>
+        <input type="file" id="archivo" accept="image/jpeg,image/png,image/webp">
+
+        <img id="vista-previa" class="vista-previa oculto" alt="Vista previa de tu foto">
+
+        <label class="campo" for="nombre">Tu nombre (opcional)</label>
+        <input type="text" id="nombre" maxlength="60" placeholder="Ej.: Ana, de Logística">
+
+        <div class="acciones">
+          <button type="submit" class="boton grande" id="boton-enviar" disabled>Enviar foto</button>
+        </div>
+        <p id="mensaje" class="mensaje" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <p class="pie">
+      Terminal Puerto Rosario S.A. · Rosario, Argentina<br>
+      <a href="/admin">Administración</a> · <a href="/presentador">Presentador</a>
+    </p>
+  </main>
+
+  <script src="/js/comun.js"></script>
+  <script src="/js/subir.js"></script>
+</body>
+</html>
