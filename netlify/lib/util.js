@@ -21,7 +21,7 @@ export function respuesta(statusCode, datos) {
 }
 
 export function fotosStore() {
-  const siteID = process.env.SITE_ID;
+  const siteID = process.env.BLOBS_SITE_ID;
   const token = process.env.NETLIFY_BLOBS_TOKEN;
   if (siteID && token) {
     return getStore({ name: "fotos-evento", siteID, token, consistency: "strong" });
