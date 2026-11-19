@@ -1,0 +1,14 @@
+{
+  "name": "tpr-fotos-evento",
+  "version": "1.0.0",
+  "description": "Muro de fotos del evento TPR: carga pública, moderación y presentación en pantalla completa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx netlify-cli dev",
+    "deploy": "npx netlify-cli deploy --build --prod"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.9"
+  }
+}
