@@ -1,0 +1,46 @@
+/* Escenario de presentación: las fotos y el logo cruzan la pantalla en carriles */
+.escenario {
+  background: radial-gradient(ellipse at 50% 35%, #1b3969 0%, #0d2140 75%);
+}
+
+.item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  background: #1b3969;
+}
+.item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tarjeta del logo TPR: aparece cada tanto y cruza la pantalla como una foto más */
+.item.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  background: linear-gradient(135deg, #1b3969 0%, #02a2e6 100%);
+  border-bottom: 0.35em solid #ac9921;
+}
+.item.logo img {
+  width: auto;
+  height: 42%;
+  max-width: 84%;
+  object-fit: contain;
+}
+.item.logo span {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
