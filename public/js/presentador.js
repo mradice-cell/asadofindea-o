@@ -1,10 +1,10 @@
 (function () {
   const CLAVE_TOKEN = "tpr_token_presentador";
-  const MAX_TILES = 48;          // fotos visibles a la vez como máximo
-  const ROTACION_MS = 3500;      // cada cuánto cambia una foto del muro
-  const ACTUALIZAR_MS = 20000;   // cada cuánto se buscan fotos nuevas aprobadas
-  const LOGO_CICLO_MS = 24000;   // cada cuánto aparece el logo
-  const LOGO_VISIBLE_MS = 7000;  // cuánto tiempo queda visible
+  const LOGO_SRC = "/assets/logo-blanco.png";
+  const LOGO_CADA_MS = 15000;        // cada cuánto entra el logo
+  const ACTUALIZAR_MS = 20000;       // cada cuánto se buscan fotos nuevas aprobadas
+  const ALTURA_CARRIL = 240;         // altura aproximada de cada carril en px
+  const VEL_MIN = 30, VEL_MAX = 70;  // velocidad en px por segundo
 
   const vistaLogin = document.getElementById("vista-login");
   const vistaPanel = document.getElementById("vista-panel");
@@ -14,22 +14,20 @@
   const contador = document.getElementById("contador");
   const estado = document.getElementById("estado");
   const escenario = document.getElementById("escenario");
-  const muro = document.getElementById("muro");
-  const logo = document.getElementById("logo");
 
   let token = sessionStorage.getItem(CLAVE_TOKEN);
-  let aprobadas = [];        // [{id, url}] todas las fotos aprobadas
-  let slots = [];            // fotos que están en pantalla, en orden de tile
-  let cola = [];             // fotos aprobadas que todavía no están en pantalla
-  let tiles = [];            // elementos .tile del DOM
-  let claveDisposicion = ""; // cambia si cambian cantidad de tiles o tamaño
+  let aprobadas = [];        // [{id, url}] fotos aprobadas
+  let cola = [];             // fotos pendientes de mostrar en esta vuelta
+  let carriles = [];
+  let W = 0, H = 0, cardH = 0;
   let presentando = false;
+  let rafId = 0, ultimoT = 0, ultimoLogo = 0, logoPendiente = false;
   let temporizadores = [];
   let wakeLock = null;
 
   function avisar(texto, tipo) {
     estado.textContent = texto;
-    estado.className = "mensaje " + (tipo || "ok");
+    estado.className = "mensaje " + (tipo || "");
   }
 
   function mostrarPanel(mostrar) {
@@ -52,118 +50,140 @@
     try {
       const r = await TPR.api("/api/fotos-aprobadas", { token });
       aprobadas = r.fotos || [];
+      cola = []; // así las fotos nuevas entran en la siguiente vuelta
       contador.textContent = aprobadas.length;
-      if (presentando) sincronizar();
+      actualizarMensajeVacio();
     } catch (e) {
       if (e.status === 401) return cerrarSesion("Tu sesión venció. Volvé a ingresar.");
       avisar("No pudimos actualizar las fotos. Reintentando…", "error");
     }
   }
 
-  // ---------- Muro de fotos ----------
-  // Pone en pantalla hasta MAX_TILES fotos y deja el resto en cola para ir rotando.
-  // Si hay pocas fotos, todas quedan visibles al mismo tiempo y el muro se reordena.
-  function sincronizar() {
-    const ids = new Set(aprobadas.map((f) => f.id));
-    slots = slots.filter((s) => ids.has(s.id));
-    const enPantalla = new Set(slots.map((s) => s.id));
-    const total = Math.min(aprobadas.length, MAX_TILES);
-    cola = TPR.barajar(aprobadas.filter((f) => !enPantalla.has(f.id)));
-    while (slots.length < total && cola.length) slots.push(cola.shift());
-    montarMuro(false);
-    // Si cambió alguna foto sin cambiar la cantidad de celdas, se actualiza solo esa celda
-    slots.forEach((_, i) => pintarTile(i));
+  function siguienteFoto() {
+    if (!cola.length) cola = TPR.barajar(aprobadas);
+    return cola.shift();
   }
 
-  function montarMuro(forzar) {
-    const w = muro.clientWidth || 1;
-    const h = muro.clientHeight || 1;
-    const clave = slots.length + "|" + w + "x" + h;
-    if (!forzar && clave === claveDisposicion) return;
-    claveDisposicion = clave;
-
-    muro.innerHTML = "";
-    tiles = [];
-
-    if (slots.length === 0) {
-      muro.innerHTML = '<div class="sin-fotos">Todavía no hay fotos aprobadas.<br>Van a aparecer acá apenas se aprueben.</div>';
-      return;
-    }
-
-    // Distribuye las fotos en filas de forma que llenen toda la pantalla sin huecos
-    const total = slots.length;
-    const filas = Math.max(1, Math.min(total, Math.round(Math.sqrt(total * h / w))));
-    const base = Math.floor(total / filas);
-    const extra = total % filas;
-
-    let indice = 0;
-    for (let f = 0; f < filas; f++) {
-      const fila = document.createElement("div");
-      fila.className = "muro-fila";
-      const cantidad = base + (f < extra ? 1 : 0);
-      for (let c = 0; c < cantidad; c++, indice++) {
-        const tile = document.createElement("div");
-        tile.className = "tile";
-        const img = document.createElement("img");
-        img.alt = "";
-        img.src = slots[indice].url;
-        img.dataset.id = slots[indice].id;
-        img.style.animationDelay = (-Math.random() * 16).toFixed(2) + "s";
-        tile.appendChild(img);
-        fila.appendChild(tile);
-        tiles.push(tile);
-      }
-      muro.appendChild(fila);
-    }
+  // ---------- Carriles ----------
+  function anchoDe(esLogo) {
+    return esLogo ? cardH * 2.2 : cardH * 0.8;
   }
 
-  // Cambia la foto de un tile con un desvanecido suave
-  function pintarTile(i) {
-    const tile = tiles[i];
-    if (!tile || !slots[i]) return;
-    const img = tile.querySelector("img");
-    if (img.dataset.id === slots[i].id) return;
-    const destino = slots[i];
-    img.dataset.id = destino.id;
-    tile.classList.add("salida");
-    setTimeout(() => {
-      const quitar = () => tile.classList.remove("salida");
-      img.onload = quitar;
-      img.onerror = quitar;
-      img.src = slots[i] ? slots[i].url : destino.url;
-    }, 700);
+  function hayLogoEnPantalla() {
+    return carriles.some((l) => l.items.some((i) => i.esLogo));
   }
 
-  function rotar() {
-    if (!presentando || slots.length === 0) return;
-
-    if (aprobadas.length <= slots.length) {
-      // Todas las fotos están en pantalla: se intercambian dos lugares
-      if (slots.length < 2) return;
-      const i = Math.floor(Math.random() * slots.length);
-      let j = Math.floor(Math.random() * (slots.length - 1));
-      if (j >= i) j++;
-      const tmp = slots[i]; slots[i] = slots[j]; slots[j] = tmp;
-      pintarTile(i);
-      pintarTile(j);
+  function crearItem(lane, x, esLogo) {
+    const el = document.createElement("div");
+    const w = anchoDe(esLogo);
+    if (esLogo) {
+      el.className = "item logo";
+      el.style.fontSize = cardH * 0.1 + "px";
+      el.innerHTML = '<img src="' + LOGO_SRC + '" alt="TPR"><span>Un socio en quien confiar</span>';
     } else {
-      // Hay más fotos que lugares: entra la siguiente de la cola y sale una visible
-      if (cola.length === 0) {
-        cola = TPR.barajar(aprobadas.filter((f) => !slots.some((s) => s.id === f.id)));
+      el.className = "item";
+      const foto = siguienteFoto();
+      const img = document.createElement("img");
+      img.src = foto.url;
+      img.alt = "";
+      el.appendChild(img);
+    }
+    el.style.width = w + "px";
+    el.style.height = cardH + "px";
+    el.style.transform = "translate3d(" + x + "px," + lane.y + "px,0)";
+    escenario.appendChild(el);
+    const item = { el, x, w, esLogo };
+    lane.items.push(item);
+    return item;
+  }
+
+  // Agrega elementos por el borde de entrada del carril (derecha o izquierda según la dirección)
+  function reponer(lane) {
+    for (let k = 0; k < 30; k++) {
+      const esLogo = logoPendiente && !hayLogoEnPantalla() && Math.random() < 0.5;
+      if (!esLogo && aprobadas.length === 0) break;
+      const w = anchoDe(esLogo);
+      const gap = 60 + Math.random() * 140;
+      let x;
+      if (lane.dir < 0) {
+        if (lane.items.length) {
+          x = Math.max(...lane.items.map((i) => i.x + i.w)) + gap;
+          if (x >= W) break;
+        } else {
+          x = W + gap;
+        }
+      } else {
+        if (lane.items.length) {
+          x = Math.min(...lane.items.map((i) => i.x)) - gap - w;
+          if (x + w <= 0) break;
+        } else {
+          x = -w - gap;
+        }
       }
-      if (cola.length === 0) return;
-      const i = Math.floor(Math.random() * slots.length);
-      const saliente = slots[i];
-      slots[i] = cola.shift();
-      cola.push(saliente);
-      pintarTile(i);
+      crearItem(lane, x, esLogo);
+      if (esLogo) logoPendiente = false;
     }
   }
 
-  // ---------- Logo TPR ----------
-  function mostrarLogo() {
-    logo.classList.add("visible");
-    setTimeout(() => logo.classList.remove("visible"), LOGO_VISIBLE_MS);
+  function avanzar(dt) {
+    for (const lane of carriles) {
+      for (const it of lane.items) {
+        it.x += lane.dir * lane.v * dt;
+        it.el.style.transform = "translate3d(" + it.x.toFixed(1) + "px," + lane.y + "px,0)";
+      }
+      lane.items = lane.items.filter((it) => {
+        const fuera = lane.dir < 0 ? it.x + it.w < -30 : it.x > W + 30;
+        if (fuera) it.el.remove();
+        return !fuera;
+      });
+      reponer(lane);
+    }
+  }
+
+  function montar() {
+    W = escenario.clientWidth;
+    H = escenario.clientHeight;
+    escenario.querySelectorAll(".item").forEach((e) => e.remove());
+    const n = Math.max(3, Math.round(H / ALTURA_CARRIL));
+    const laneH = H / n;
+    cardH = laneH * 0.8;
+    carriles = [];
+    for (let i = 0; i < n; i++) {
+      carriles.push({
+        y: i * laneH + (laneH - cardH) / 2,
+        dir: i % 2 === 0 ? -1 : 1,
+        v: VEL_MIN + Math.random() * (VEL_MAX - VEL_MIN),
+        items: [],
+      });
+    }
+    // Precalentado: simula ~40 segundos para que los carriles ya estén llenos al empezar
+    for (let s = 0; s < 400; s++) avanzar(0.1);
+    actualizarMensajeVacio();
+  }
+
+  function actualizarMensajeVacio() {
+    let msg = escenario.querySelector(".sin-fotos");
+    if (presentando && aprobadas.length === 0) {
+      if (!msg) {
+        msg = document.createElement("div");
+        msg.className = "sin-fotos";
+        msg.innerHTML = "Todavía no hay fotos aprobadas.<br>Van a aparecer acá apenas se aprueben.";
+        escenario.appendChild(msg);
+      }
+    } else if (msg) {
+      msg.remove();
+    }
+  }
+
+  function frame(t) {
+    const dt = Math.min(0.05, (t - ultimoT) / 1000);
+    ultimoT = t;
+    avanzar(dt);
+    if (t - ultimoLogo >= LOGO_CADA_MS) {
+      ultimoLogo = t;
+      logoPendiente = true;
+    }
+    rafId = requestAnimationFrame(frame);
   }
 
   // ---------- Presentación ----------
@@ -172,30 +192,29 @@
     escenario.classList.remove("oculto");
     try {
       if (escenario.requestFullscreen) await escenario.requestFullscreen();
-    } catch (e) { /* si el navegador no permite pantalla completa, igual se muestra a pantalla completa de la ventana */ }
+    } catch (e) { /* si no se permite pantalla completa, igual se muestra el escenario */ }
 
     try {
       if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
     } catch (e) { /* opcional */ }
 
     await cargarFotos();
-    sincronizar();
+    montar();
 
-    temporizadores.push(setInterval(rotar, ROTACION_MS));
+    ultimoT = performance.now();
+    ultimoLogo = ultimoT;
+    rafId = requestAnimationFrame(frame);
     temporizadores.push(setInterval(cargarFotos, ACTUALIZAR_MS));
-    temporizadores.push(setTimeout(mostrarLogo, 1500));
-    temporizadores.push(setInterval(mostrarLogo, LOGO_CICLO_MS));
   }
 
   function detener() {
     presentando = false;
-    temporizadores.forEach((t) => { clearInterval(t); clearTimeout(t); });
+    cancelAnimationFrame(rafId);
+    temporizadores.forEach((t) => clearInterval(t));
     temporizadores = [];
-    logo.classList.remove("visible");
+    carriles = [];
+    escenario.querySelectorAll(".item, .sin-fotos").forEach((e) => e.remove());
     escenario.classList.add("oculto");
-    muro.innerHTML = "";
-    tiles = [];
-    claveDisposicion = "";
     if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
@@ -223,16 +242,14 @@
   });
 
   document.getElementById("boton-iniciar").addEventListener("click", iniciar);
-  document.getElementById("boton-salir-escenario").addEventListener("click", () => {
-    detener();
-  });
+  document.getElementById("boton-salir-escenario").addEventListener("click", detener);
   document.getElementById("boton-salir-sesion").addEventListener("click", () => cerrarSesion(""));
 
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && presentando) detener();
   });
 
-  // Si el usuario sale de pantalla completa con la tecla del navegador, se cierra el escenario
+  // Si se sale de pantalla completa con el navegador, se cierra la presentación
   document.addEventListener("fullscreenchange", () => {
     if (!document.fullscreenElement && presentando) detener();
   });
@@ -241,11 +258,11 @@
   window.addEventListener("resize", () => {
     clearTimeout(redimensionTimer);
     redimensionTimer = setTimeout(() => {
-      if (presentando) { montarMuro(true); }
+      if (presentando) montar();
     }, 250);
   });
 
-  // Contador del panel: se actualiza siempre que haya sesión (la presentación se actualiza por su cuenta)
+  // El contador del panel se actualiza solo cuando no se está presentando
   setInterval(() => { if (token && !presentando) cargarFotos(); }, ACTUALIZAR_MS);
 
   // Arranque
